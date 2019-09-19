@@ -7,6 +7,8 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
 using Microsoft.AspNetCore.Cors;
+using System.Diagnostics;
+using Newtonsoft.Json.Linq;
 
 namespace CoCAPI.Controllers
 {
@@ -23,26 +25,9 @@ namespace CoCAPI.Controllers
             return GetQuestionsList();
         }
 
-        //// GET: api/CoC/5
-        //[HttpGet("{id}", Name = "Get")]
-        //public string Get(int id)
-        //{
-        //    return "value";
-        //}
-
-        // GET: api/CoC/5
-        //[HttpGet]
-        //[Route("api/coc/{EffectiveDate}/{DOS}/{ProgramDate}/{MNFlag}")]
-        //public IEnumerable<Question> Get(string DOS, string EffectiveDate, string ProgramDate, bool MNFlag)
-        //{
-        //    List<Question> lQuestions = GetQuestionsList().ToList();
-
-        //    return lQuestions;
-        //}
-
         [HttpGet]
         [Route("api/coc/{ProgramStartDate}/{EntryDate}/{DateOfService}/{MNFlag}")]
-        public IEnumerable<Question> Get(string ProgramStartDate, string EntryDate, string DateOfService, bool MNFlag)
+        public IEnumerable<Question> Get([FromQuery]string ProgramStartDate, [FromQuery]string EntryDate, [FromQuery]string DateOfService, [FromQuery]bool MNFlag)
         {
             string echo = "N/A";
             string exclude = "";
@@ -87,8 +72,53 @@ namespace CoCAPI.Controllers
         // POST: api/CoC
         [HttpPost]
         [Route("api/coc")]
-        public void Post([FromBody] string value)
+        public CoCResult Post([FromBody] CocRequest value)
         {
+            string json = JsonConvert.SerializeObject(value.AnswerList);
+            Debug.WriteLine(json);
+            string jsonformatted = JValue.Parse(json).ToString(Formatting.Indented);
+            Debug.WriteLine(jsonformatted);
+            //Debug.WriteLine(value.Num);
+            //Debug.WriteLine(value.Str);
+            var alist = JsonConvert.DeserializeObject<List<Question>>(json);
+            int one = 0;
+            int two = 0;
+            int three = 0;
+            CoCResult result = new CoCResult();
+            result.LevelOne = "Not Met";
+            result.LevelTwo = "Not Met";
+            result.LevelThree = "Not Met";
+            result.CoCDetermination = "Not CoC";
+            result.BadgeFlag = false;
+
+            foreach (Question a in alist)
+            {
+                if (a.Level == "1")
+                {
+                    one++;
+                }
+                if (a.Level == "2")
+                {
+                    two++;
+                }
+                if (a.Level == "3")
+                {
+                    three++;
+                }
+            }
+            if (one > 0) result.LevelOne = "Met";
+            if (two > 1) result.LevelTwo = "Met";
+            if (three > 0) result.LevelThree = "Met";
+            if (result.LevelOne=="Met" && result.LevelTwo== "Met" && result.LevelThree == "Met")
+                result.CoCDetermination = "Admin";
+            else if (result.LevelTwo == "Met" && result.LevelThree == "Met")
+                result.CoCDetermination = "Clinical";
+            if (!result.CoCDetermination.StartsWith("N"))
+                result.BadgeFlag = true;
+
+            result.Extra = "";
+            return result;
+
         }
 
         // PUT: api/CoC/5
