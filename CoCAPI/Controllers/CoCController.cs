@@ -20,11 +20,11 @@ namespace CoCAPI.Controllers
 
         [HttpGet]
         [Route("api/coc")]
-        public IEnumerable<Question> Get([FromQuery]string ProgramStartDate, [FromQuery]string EntryDate, [FromQuery]string DateOfService, [FromQuery]bool MNFlag)
+        public IEnumerable<Question> Get([FromQuery]string ProgramStartDate, [FromQuery]string EntryDate, [FromQuery]string DateOfService, [FromQuery]string Client)
         {
             string echo = "N/A";
             string exclude = "";
-            bool abend = true;
+            bool ShowQuestions = false;
             List<Question> lQuestions = new List<Question>();
             try
             {
@@ -33,7 +33,14 @@ namespace CoCAPI.Controllers
                 DateTime dProgramStartDate = DateTime.Parse(ProgramStartDate);
                 DateTime dProgramStartDatePlus180 = dProgramStartDate.AddDays(180);
                 DateTime dProgramStartDateMinus180 = dProgramStartDate.AddDays(-180);
-                if (dEntryDate > dProgramStartDatePlus180)
+                // figure out what scenario we have from the dates passed in
+                if (Client.StartsWith("V"))
+                {
+                    echo = "12345 Vanilla" + Environment.NewLine;
+                    exclude = "AB";
+                    ShowQuestions = true;
+                }
+                else if (dEntryDate > dProgramStartDatePlus180) // scenario 1 & 2
                 {
                     if (dDateOfService < dProgramStartDate) // hard stop
                         echo = "Hard Stop" + Environment.NewLine;
@@ -41,12 +48,37 @@ namespace CoCAPI.Controllers
                     {
                         echo = "A12345" + Environment.NewLine;
                         exclude = "B";
-                        abend = false;
+                        ShowQuestions = true;
                     }
                     else
                         echo = "N/A" + Environment.NewLine;
                 }
-                if (!abend) // if we still need questions
+                else if (dEntryDate <= dProgramStartDatePlus180) // scenario 3, 4 & 5
+                {
+                    if (dDateOfService < dProgramStartDate) //scenario 3
+                    {
+                        echo = "B12345" + Environment.NewLine;
+                        exclude = "A";
+                        ShowQuestions = true;
+                    }
+                    else if (dDateOfService >= dProgramStartDate &&
+                        dDateOfService <= dProgramStartDatePlus180) //scenario 4 (inside client administrative period)
+                    {
+                        echo = "12345" + Environment.NewLine;
+                        exclude = "AB";
+                        ShowQuestions = true;
+                    }
+                    else if (dDateOfService >= dProgramStartDatePlus180) //scenario 5 (outside client administrative period)
+                    {
+                        echo = "A12345" + Environment.NewLine;
+                        exclude = "B";
+                        ShowQuestions = true;
+                    }
+                    else
+                        echo = "N/A" + Environment.NewLine;
+                }
+                // if we need questions load em and remove our excluded questions
+                if (ShowQuestions)
                 {
                     // get our full list
                     lQuestions = GetQuestionsList().ToList();
