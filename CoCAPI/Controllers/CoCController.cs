@@ -17,16 +17,9 @@ namespace CoCAPI.Controllers
     [ApiController]
     public class CoCController : ControllerBase
     {
-        // GET: api/CoC
-        [HttpGet]
-        [Route("api/coc")]
-        public IEnumerable<Question> Get()
-        {
-            return GetQuestionsList();
-        }
 
         [HttpGet]
-        [Route("api/coc/{ProgramStartDate}/{EntryDate}/{DateOfService}/{MNFlag}")]
+        [Route("api/coc")]
         public IEnumerable<Question> Get([FromQuery]string ProgramStartDate, [FromQuery]string EntryDate, [FromQuery]string DateOfService, [FromQuery]bool MNFlag)
         {
             string echo = "N/A";
